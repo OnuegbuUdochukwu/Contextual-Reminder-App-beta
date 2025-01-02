@@ -8,12 +8,13 @@ import * as Notifications from 'expo-notifications';
 import * as BackgroundFetch from 'expo-background-fetch';
 import * as TaskManager from 'expo-task-manager';
 import { Ionicons } from '@expo/vector-icons';
-import firebase from './services/firebase';
+import { getAuth, onAuthStateChanged, User } from 'firebase/auth';
+import app from './services/firebase';
 import HomeScreen from './screens/HomeScreen';
 import CalendarScreen from './screens/CalendarScreen';
 import AuthScreen from './screens/AuthScreen';
 import SettingsScreen from './screens/SettingsScreen';
-import { theme } from './styles/theme';
+import { lightTheme, darkTheme } from './styles/theme';
 import { StatusBar } from 'react-native';
 import { checkReminders } from './services/reminderService';
 import { Reminder } from './types';
@@ -26,7 +27,7 @@ TaskManager.defineTask(BACKGROUND_FETCH_TASK, async () => {
   const now = Date.now();
   console.log(`Got background fetch call at date: ${new Date(now).toISOString()}`);
   await checkReminders();
-  return BackgroundFetch.Result.NewData;
+  return BackgroundFetch.BackgroundFetchResult.NewData;
 });
 
 Notifications.setNotificationHandler({
@@ -39,10 +40,12 @@ Notifications.setNotificationHandler({
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
   useEffect(() => {
     setupBackgroundFetch();
     checkAuthState();
+    loadThemePreference();
   }, []);
 
   const setupBackgroundFetch = async () => {
@@ -54,20 +57,28 @@ export default function App() {
   };
 
   const checkAuthState = () => {
-    firebase.auth().onAuthStateChanged((user) => {
+    const auth = getAuth(app);
+    onAuthStateChanged(auth, (user: User | null) => {
       setIsAuthenticated(!!user);
     });
   };
 
+  const loadThemePreference = async () => {
+    const savedTheme = await AsyncStorage.getItem('theme');
+    setIsDarkMode(savedTheme === 'dark');
+  };
+
+  const theme = isDarkMode ? darkTheme : lightTheme;
+
   return (
     <PaperProvider theme={theme}>
-      <StatusBar backgroundColor={theme.colors.primary} barStyle="light-content" />
+      <StatusBar backgroundColor={theme.colors.primary} barStyle={isDarkMode ? "light-content" : "dark-content"} />
       <NavigationContainer>
         {isAuthenticated ? (
           <Tab.Navigator
             screenOptions={({ route }) => ({
               tabBarIcon: ({ focused, color, size }) => {
-                let iconName;
+                let iconName: keyof typeof Ionicons.glyphMap = 'home';
 
                 if (route.name === 'Home') {
                   iconName = focused ? 'home' : 'home-outline';
