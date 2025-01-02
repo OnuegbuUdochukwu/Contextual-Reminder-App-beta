@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, TextInput, Button, StyleSheet, Picker } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { TextInput, Button, SegmentedButtons, Text, Switch } from 'react-native-paper';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Location from 'expo-location';
 import { Reminder } from '../types';
@@ -19,8 +20,7 @@ export default function ReminderForm({ onSave, aiSuggestions, editingReminder }:
   const [weatherCondition, setWeatherCondition] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [isRecurring, setIsRecurring] = useState(false);
-  const [recurringInterval, setRecurringInterval] = useState<number | undefined>(undefined);
-
+  const [recurringInterval, setRecurringInterval] = useState<'daily' | 'weekly' | 'monthly'>('daily');
 
   useEffect(() => {
     loadSuggestions();
@@ -29,7 +29,7 @@ export default function ReminderForm({ onSave, aiSuggestions, editingReminder }:
       setTriggerType(editingReminder.triggerType);
       setCategory(editingReminder.category);
       setIsRecurring(editingReminder.isRecurring || false);
-      setRecurringInterval(editingReminder.recurringInterval);
+      setRecurringInterval(editingReminder.recurringInterval || 'daily');
       if (editingReminder.triggerType === 'time' && editingReminder.details.time) {
         setTime(new Date(editingReminder.details.time));
       } else if (editingReminder.triggerType === 'location' && editingReminder.details.location) {
@@ -81,7 +81,7 @@ export default function ReminderForm({ onSave, aiSuggestions, editingReminder }:
     setLocation(null);
     setWeatherCondition('');
     setIsRecurring(false);
-    setRecurringInterval(undefined);
+    setRecurringInterval('daily');
   };
 
   const handleLocationSelect = async () => {
@@ -102,51 +102,78 @@ export default function ReminderForm({ onSave, aiSuggestions, editingReminder }:
   return (
     <View style={styles.container}>
       <TextInput
-        style={styles.input}
-        placeholder="Reminder title"
+        mode="outlined"
+        label="Reminder title"
         value={title}
         onChangeText={setTitle}
-      />
-      <Picker
-        selectedValue={triggerType}
-        style={styles.picker}
-        onValueChange={(itemValue) => setTriggerType(itemValue)}
-      >
-        <Picker.Item label="Time-based" value="time" />
-        <Picker.Item label="Location-based" value="location" />
-        <Picker.Item label="Condition-based" value="condition" />
-      </Picker>
-      <TextInput
         style={styles.input}
-        placeholder="Category"
+      />
+      <SegmentedButtons
+        value={triggerType}
+        onValueChange={(value) => setTriggerType(value as 'time' | 'location' | 'condition')}
+        buttons={[
+          { value: 'time', label: 'Time' },
+          { value: 'location', label: 'Location' },
+          { value: 'condition', label: 'Condition' },
+        ]}
+        style={styles.segmentedButtons}
+      />
+      <TextInput
+        mode="outlined"
+        label="Category"
         value={category}
         onChangeText={setCategory}
+        style={styles.input}
       />
       {triggerType === 'time' && (
         <DateTimePicker
           value={time}
           mode="datetime"
-          is24Hour={true}
           display="default"
-          onChange={(event, selectedDate) => setTime(selectedDate || time)}
+          onChange={(event, selectedDate) => selectedDate && setTime(selectedDate)}
         />
       )}
       {triggerType === 'location' && (
-        <Button title="Select Current Location" onPress={handleLocationSelect} />
+        <Button mode="outlined" onPress={handleLocationSelect} style={styles.button}>
+          Select Current Location
+        </Button>
       )}
       {triggerType === 'condition' && (
         <TextInput
-          style={styles.input}
-          placeholder="Weather condition (e.g., rain, sunny)"
+          mode="outlined"
+          label="Weather condition (e.g., rain, sunny)"
           value={weatherCondition}
           onChangeText={setWeatherCondition}
+          style={styles.input}
         />
       )}
-      <Button title={editingReminder ? "Update Reminder" : "Save Reminder"} onPress={handleSave} />
+      <View style={styles.switchContainer}>
+        <Text>Recurring</Text>
+        <Switch value={isRecurring} onValueChange={setIsRecurring} />
+      </View>
+      {isRecurring && (
+        <SegmentedButtons
+          value={recurringInterval}
+          onValueChange={(value) => setRecurringInterval(value as 'daily' | 'weekly' | 'monthly')}
+          buttons={[
+            { value: 'daily', label: 'Daily' },
+            { value: 'weekly', label: 'Weekly' },
+            { value: 'monthly', label: 'Monthly' },
+          ]}
+          style={styles.segmentedButtons}
+        />
+      )}
+      <Button mode="contained" onPress={handleSave} style={styles.button}>
+        {editingReminder ? "Update Reminder" : "Save Reminder"}
+      </Button>
       <View style={styles.suggestionsContainer}>
-        <Button title="Get AI Suggestions" onPress={loadSuggestions} />
+        <Button mode="outlined" onPress={loadSuggestions} style={styles.button}>
+          Get AI Suggestions
+        </Button>
         {suggestions.map((suggestion, index) => (
-          <Button key={index} title={suggestion} onPress={() => setTitle(suggestion)} />
+          <Button key={index} mode="text" onPress={() => setTitle(suggestion)} style={styles.suggestionButton}>
+            {suggestion}
+          </Button>
         ))}
       </View>
     </View>
@@ -159,18 +186,25 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   input: {
-    height: 40,
-    borderColor: 'gray',
-    borderWidth: 1,
     marginBottom: 10,
-    paddingHorizontal: 10,
   },
-  picker: {
-    height: 50,
+  segmentedButtons: {
+    marginBottom: 10,
+  },
+  button: {
+    marginBottom: 10,
+  },
+  switchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 10,
   },
   suggestionsContainer: {
     marginTop: 20,
+  },
+  suggestionButton: {
+    marginBottom: 5,
   },
 });
 
