@@ -3,7 +3,20 @@ import * as admin from 'firebase-admin';
 
 admin.initializeApp();
 
-export const shareReminder = functions.https.onCall(async (data, context) => {
+interface ShareReminderData {
+  reminder: {
+    id: string;
+    title: string;
+    triggerType: 'time' | 'location' | 'condition';
+    category: string;
+    details: any; // You might want to define a more specific type for details
+    isRecurring?: boolean;
+    recurringInterval?: 'daily' | 'weekly' | 'monthly';
+  };
+  recipientEmail: string;
+}
+
+export const shareReminder = functions.https.onCall(async (data: ShareReminderData, context: functions.https.CallableContext) => {
   if (!context.auth) {
     throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated to share reminders.');
   }

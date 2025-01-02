@@ -1,26 +1,29 @@
 import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { TextInput, Button, HelperText } from 'react-native-paper';
-import firebase from '../services/firebase';
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+import app from '../services/firebase';
 
 export default function AuthScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string | null>(null);
+
+  const auth = getAuth(app);
 
   const handleSignIn = async () => {
     try {
-      await firebase.auth().signInWithEmailAndPassword(email, password);
-    } catch (error) {
-      setError(error.message);
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
     }
   };
 
   const handleSignUp = async () => {
     try {
-      await firebase.auth().createUserWithEmailAndPassword(email, password);
-    } catch (error) {
-      setError(error.message);
+      await createUserWithEmailAndPassword(auth, email, password);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
     }
   };
 
@@ -41,7 +44,7 @@ export default function AuthScreen() {
         secureTextEntry
         style={styles.input}
       />
-      {error ? <HelperText type="error">{error}</HelperText> : null}
+      {error && <HelperText type="error">{error}</HelperText>}
       <Button mode="contained" onPress={handleSignIn} style={styles.button}>
         Sign In
       </Button>

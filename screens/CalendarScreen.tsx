@@ -11,7 +11,7 @@ import AIService from '../services/AIService';
 
 export default function CalendarScreen() {
   const [reminders, setReminders] = useState<Reminder[]>([]);
-  const [markedDates, setMarkedDates] = useState({});
+  const [markedDates, setMarkedDates] = useState<{[key: string]: {marked: boolean, dotColor: string}}>({});
   const [selectedDate, setSelectedDate] = useState('');
   const [isDayModalVisible, setIsDayModalVisible] = useState(false);
   const [isShareModalVisible, setIsShareModalVisible] = useState(false);
@@ -31,7 +31,7 @@ export default function CalendarScreen() {
   };
 
   const updateMarkedDates = (reminders: Reminder[]) => {
-    const marked = {};
+    const marked: {[key: string]: {marked: boolean, dotColor: string}} = {};
     reminders.forEach((reminder) => {
       if (reminder.triggerType === 'time' && reminder.details.time) {
         const date = new Date(reminder.details.time).toISOString().split('T')[0];
@@ -86,12 +86,12 @@ export default function CalendarScreen() {
           calendarBackground: theme.colors.background,
           textSectionTitleColor: theme.colors.primary,
           selectedDayBackgroundColor: theme.colors.primary,
-          selectedDayTextColor: theme.colors.background,
-          todayTextColor: theme.colors.accent,
-          dayTextColor: theme.colors.text,
-          textDisabledColor: theme.colors.disabled,
+          selectedDayTextColor: theme.colors.onPrimary,
+          todayTextColor: theme.colors.secondary,
+          dayTextColor: theme.colors.onBackground,
+          textDisabledColor: theme.colors.outline,
           dotColor: theme.colors.primary,
-          selectedDotColor: theme.colors.background,
+          selectedDotColor: theme.colors.onPrimary,
           arrowColor: theme.colors.primary,
           monthTextColor: theme.colors.primary,
           indicatorColor: theme.colors.primary,

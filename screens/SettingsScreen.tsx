@@ -2,11 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Switch, Text, Button } from 'react-native-paper';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import firebase from '../services/firebase';
+import { getAuth, signOut } from 'firebase/auth';
+import app from '../services/firebase';
 
 export default function SettingsScreen() {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [aiSuggestionsEnabled, setAiSuggestionsEnabled] = useState(true);
+
+  const auth = getAuth(app);
 
   useEffect(() => {
     loadSettings();
@@ -26,7 +29,7 @@ export default function SettingsScreen() {
 
   const handleSignOut = async () => {
     try {
-      await firebase.auth().signOut();
+      await signOut(auth);
     } catch (error) {
       console.error('Error signing out:', error);
     }
