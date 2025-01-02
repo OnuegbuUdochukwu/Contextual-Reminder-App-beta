@@ -35,7 +35,18 @@ export const updateReminder = async (reminder: Reminder): Promise<void> => {
   if (!userId) throw new Error('User not authenticated');
 
   const reminderRef = doc(db, 'reminders', reminder.id);
-  await updateDoc(reminderRef, reminder);
+  
+  // Create an object with only the fields that can be updated
+  const updateData = {
+    title: reminder.title,
+    triggerType: reminder.triggerType,
+    category: reminder.category,
+    details: reminder.details,
+    isRecurring: reminder.isRecurring,
+    recurringInterval: reminder.recurringInterval,
+  };
+
+  await updateDoc(reminderRef, updateData);
   await scheduleNotification(reminder);
 };
 
