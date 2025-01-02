@@ -24,8 +24,8 @@ export default function ShareModal({ visible, onDismiss, reminder }: ShareModalP
     try {
       await shareReminder(reminder, email);
       onDismiss();
-    } catch (error) {
-      setError(error.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An unknown error occurred');
     } finally {
       setIsLoading(false);
     }

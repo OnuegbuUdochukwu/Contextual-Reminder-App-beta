@@ -131,9 +131,8 @@ export default function ReminderFormModal({
             <DateTimePicker
               value={time}
               mode="datetime"
-              is24Hour={true}
               display="default"
-              onChange={(event, selectedDate) => setTime(selectedDate || time)}
+              onChange={(event, selectedDate) => selectedDate && setTime(selectedDate)}
             />
           )}
           {triggerType === 'location' && (
