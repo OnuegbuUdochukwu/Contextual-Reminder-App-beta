@@ -1,43 +1,50 @@
-import firebase from './firebase';
-import { Reminder } from '../types';
+import { getFirestore, collection, query, where, getDocs, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 import * as Notifications from 'expo-notifications';
 import * as Location from 'expo-location';
 import WeatherService from './WeatherService';
+import app from './firebase';
+import { Reminder } from '../types';
 
-const db = firebase.firestore();
+const db = getFirestore(app);
+const auth = getAuth(app);
 
 export const loadReminders = async (): Promise<Reminder[]> => {
-  const userId = firebase.auth().currentUser?.uid;
+  const userId = auth.currentUser?.uid;
   if (!userId) return [];
 
-  const snapshot = await db.collection('reminders').where('userId', '==', userId).get();
+  const remindersRef = collection(db, 'reminders');
+  const q = query(remindersRef, where('userId', '==', userId));
+  const snapshot = await getDocs(q);
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Reminder));
 };
 
 export const saveReminder = async (reminder: Reminder): Promise<void> => {
-  const userId = firebase.auth().currentUser?.uid;
+  const userId = auth.currentUser?.uid;
   if (!userId) throw new Error('User not authenticated');
 
-  await db.collection('reminders').add({
+  await addDoc(collection(db, 'reminders'), {
     ...reminder,
     userId,
   });
-  scheduleNotification(reminder);
+  await scheduleNotification(reminder);
 };
 
 export const updateReminder = async (reminder: Reminder): Promise<void> => {
-  const userId = firebase.auth().currentUser?.uid;
+  const userId = auth.currentUser?.uid;
   if (!userId) throw new Error('User not authenticated');
 
-  await db.collection('reminders').doc(reminder.id).update(reminder);
-  scheduleNotification(reminder);
+  const reminderRef = doc(db, 'reminders', reminder.id);
+  await updateDoc(reminderRef, reminder);
+  await scheduleNotification(reminder);
 };
 
 export const deleteReminder = async (id: string): Promise<void> => {
-  const userId = firebase.auth().currentUser?.uid;
+  const userId = auth.currentUser?.uid;
   if (!userId) throw new Error('User not authenticated');
 
-  await db.collection('reminders').doc(id).delete();
+  const reminderRef = doc(db, 'reminders', id);
+  await deleteDoc(reminderRef);
   await Notifications.cancelScheduledNotificationAsync(id);
 };
 
@@ -51,7 +58,7 @@ export const checkReminders = async (): Promise<void> => {
 
   for (const reminder of reminders) {
     if (shouldTriggerReminder(reminder, currentLocation, currentWeather)) {
-      triggerNotification(reminder);
+      await triggerNotification(reminder);
     }
   }
 };
@@ -61,7 +68,7 @@ const shouldTriggerReminder = (
   location: Location.LocationObject,
   weather: string
 ): boolean => {
-  if (reminder.triggerType === 'time') {
+  if (reminder.triggerType === 'time' && reminder.details.time) {
     const now = new Date();
     const reminderTime = new Date(reminder.details.time);
     return now >= reminderTime;
@@ -80,7 +87,6 @@ const shouldTriggerReminder = (
 };
 
 const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-  // Haversine formula implementation
   const R = 6371; // Radius of the Earth in km
   const dLat = deg2rad(lat2 - lat1);
   const dLon = deg2rad(lon2 - lon1);
@@ -96,8 +102,8 @@ const deg2rad = (deg: number): number => {
   return deg * (Math.PI / 180);
 };
 
-const scheduleNotification = async (reminder: Reminder) => {
-  if (reminder.triggerType === 'time') {
+const scheduleNotification = async (reminder: Reminder): Promise<void> => {
+  if (reminder.triggerType === 'time' && reminder.details.time) {
     await Notifications.scheduleNotificationAsync({
       content: {
         title: reminder.title,
@@ -109,7 +115,7 @@ const scheduleNotification = async (reminder: Reminder) => {
   }
 };
 
-const triggerNotification = async (reminder: Reminder) => {
+const triggerNotification = async (reminder: Reminder): Promise<void> => {
   await Notifications.scheduleNotificationAsync({
     content: {
       title: reminder.title,

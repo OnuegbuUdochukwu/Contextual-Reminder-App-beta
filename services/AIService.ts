@@ -43,28 +43,27 @@ export default class AIService {
     };
   }
 
-  private static prepareInput(reminders: Reminder[], userContext: any) {
-    // Convert reminders and user context into a format suitable for the AI model
-    // This is a placeholder implementation and should be adapted based on your specific model architecture
-    const input = tf.tensor2d([
-      ...reminders.map(r => [
-        r.triggerType === 'time' ? 1 : 0,
-        r.triggerType === 'location' ? 1 : 0,
-        r.triggerType === 'condition' ? 1 : 0,
-        // Add more features as needed
-      ]),
-      [userContext.dayOfWeek / 7, userContext.hour / 24, userContext.month / 12],
+  private static prepareInput(reminders: Reminder[], userContext: any): tf.Tensor2D {
+    const reminderFeatures = reminders.map(r => [
+      r.triggerType === 'time' ? 1 : 0,
+      r.triggerType === 'location' ? 1 : 0,
+      r.triggerType === 'condition' ? 1 : 0,
     ]);
-    return input;
+
+    const contextFeatures = [
+      userContext.dayOfWeek / 7,
+      userContext.hour / 24,
+      userContext.month / 12,
+    ];
+
+    const inputData = reminderFeatures.concat([contextFeatures]);
+    return tf.tensor2d(inputData);
   }
 
   private static async decodePrediction(prediction: tf.Tensor): Promise<string[]> {
-    // Convert the model's output into human-readable suggestions
-    // This is a placeholder implementation and should be adapted based on your specific model architecture
     const topK = 5;
     const values = await prediction.topk(topK).values.array();
-    const suggestions = values.map(v => `Suggested reminder ${v.toFixed(2)}`);
-    return suggestions;
+    return (values as number[]).map(v => `Suggested reminder ${v.toFixed(2)}`);
   }
 }
 
